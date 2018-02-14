@@ -10,10 +10,14 @@ import {
 
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 import Touchable from 'react-native-platform-touchable'
+import gql from 'graphql-tag';
+import { graphql } from 'react-apollo';
+
 
 import FavoriteCard from '../components/favoritCard'
 
 const { width, height } = Dimensions.get('screen')
+const keyExtractor = (node) => `item_${node.id}`
 
 const noRepos = require('../../assets/icons/icNoInformation.png')
 
@@ -36,7 +40,7 @@ const styles = StyleSheet.create({
   }
 })
 
-export default class Favorites extends PureComponent {
+class Favorites extends PureComponent {
   static navigationOptions = {
     tabBarLabel: 'Favorites',
     tabBarIcon: () => <Icon size={24} color="white" name="heart" />,
@@ -45,6 +49,7 @@ export default class Favorites extends PureComponent {
   state = {}
 
   seeDetails = item => {
+    console.log(item)
     this.props.navigation.navigate('Details', { ...item })
   }
 
@@ -66,6 +71,12 @@ export default class Favorites extends PureComponent {
   )
 
   render() {
+    if (this.props.favorites.error || this.props.favorites.loading) {
+      return <View />
+    }
+
+    console.log(this.props.favorites)
+
     return (
       <View style={styles.container}>
         <FlatList
@@ -74,11 +85,46 @@ export default class Favorites extends PureComponent {
           numColumns={2}
           ListEmptyComponent={this.renderNoItems}
           renderItem={this.renderItem}
-          extraData={[]}
-          data={[]}
+          keyExtractor={keyExtractor}
+          extraData={this.props.favorites.favorites}
+          data={this.props.favorites.favorites}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
         />
       </View>
     )
   }
 }
+
+const query = gql`
+  query {
+    favorites @client {
+      owner{
+        avatarUrl
+        login
+        url
+      }
+      stargazers(last: 3){
+        totalCount
+        edges {
+          node {
+            avatarUrl
+          }
+        }
+      }
+      forks{
+        totalCount
+      }
+      watchers {
+        totalCount
+      }
+      createdAt
+      description
+      name
+      id
+    }
+  }
+`
+
+export default graphql(query,
+  { name: 'favorites' }
+)(Favorites)

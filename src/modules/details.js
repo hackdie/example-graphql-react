@@ -5,8 +5,10 @@ import { find } from 'lodash'
 import Toolbar from '../components/toolbar'
 import DetailsHeader from '../components/detailsHeader'
 import RowDetails from '../components/rowSectionDetails'
-// import { getRepoDetails } from '../epics/details'
-// import { addFavorite, removeFavorite } from '../actions/details'
+
+
+import gql from 'graphql-tag';
+import { graphql, compose } from 'react-apollo';
 
 const { width } = Dimensions.get('screen')
 const keyExtractor = (item, index) => `item_${item.id}_${index}`
@@ -36,22 +38,21 @@ const styles = StyleSheet.create({
 })
 
 
-export default class Details extends PureComponent {
+class Details extends PureComponent {
   constructor(props) {
     super(props)
 
     const repo = props.navigation.state.params
-    const favorite = find(props.favorites, fv => fv.id === repo.id)
 
     this.state = {
       repo,
       loading: true,
       issues: [],
       subscribers: [],
-      favorite: !!favorite,
+      favorite: false,
     }
 
-    console.log(this.state)
+    console.log(this.props)
   }
   componentDidMount = () => {
     // this.getExtraData()
@@ -59,30 +60,12 @@ export default class Details extends PureComponent {
 
   componentWillReceiveProps = props => {
     const { repo } = this.state
-    const favorite = find(props.favorites, fv => fv.id === repo.id)
+    const favorite = find(props.favorites.favorites, fv => fv.id === repo.id)
     this.setState({ favorite: !!favorite })
   }
 
-  // getExtraData = () => {
-  //   const { owner, name } = this.state.repo
-
-  //   this.setState({ loading: true })
-
-  //   const subId = getRepoDetails(owner, name).subscribe(
-  //     ({ issues, subscribers }) => {
-  //       this.setState({ issues, subscribers, loading: false })
-  //       subId.unsubscribe()
-  //     }
-  //   )
-  // }
-
   saveRepo = () => {
-    const fav = find(this.props.favorites, fv => fv.id === this.state.repo.id)
-    if (fav) {
-      this.props.removeFavorite(fav.id)
-    } else {
-      this.props.addFavorite(this.state.repo)
-    }
+    this.props.addFavorite({ variables: { repo: this.state.repo } })
   }
 
   goBack = () => {
@@ -133,38 +116,64 @@ export default class Details extends PureComponent {
     )
   }
 
-  render = () => (
-    <View style={styles.container}>
-      <Toolbar
-        title={this.state.repo.owner.login}
-        description={this.state.repo.owner.url}
-        leftImg="chevron-left"
-        rightImg={this.state.favorite ? 'heart' : 'heart-outline'}
-        leftAction={this.goBack}
-        rightAction={this.saveRepo}
-      />
-      <SectionList
-        renderItem={this.renderItem}
-        renderSectionHeader={this.renderHeader}
-        ListFooterComponent={this.renderFooter}
-        keyExtractor={keyExtractor}
-        refreshing={this.state.loading}
-        onRefresh={this.getExtraData}
-        ListHeaderComponent={this.renderHeaderList}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        sections={[
-          {
-            data: this.state.subscribers,
-            title: 'Followers',
-            renderItem: this.renderFollowers,
-          },
-          {
-            data: this.state.issues,
-            title: 'Issues',
-            renderItem: this.renderIssues,
-          },
-        ]}
-      />
-    </View>
-  )
+  render = () => {
+    console.log(this.props)
+    return (
+      <View style={styles.container}>
+        <Toolbar
+          title={this.state.repo.owner.login}
+          description={this.state.repo.owner.url}
+          leftImg="chevron-left"
+          rightImg={this.state.favorite ? 'heart' : 'heart-outline'}
+          leftAction={this.goBack}
+          rightAction={this.saveRepo}
+        />
+        <SectionList
+          renderItem={this.renderItem}
+          renderSectionHeader={this.renderHeader}
+          ListFooterComponent={this.renderFooter}
+          keyExtractor={keyExtractor}
+          refreshing={this.state.loading}
+          onRefresh={this.getExtraData}
+          ListHeaderComponent={this.renderHeaderList}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          sections={[
+            {
+              data: this.state.subscribers,
+              title: 'Followers',
+              renderItem: this.renderFollowers,
+            },
+            {
+              data: this.state.issues,
+              title: 'Issues',
+              renderItem: this.renderIssues,
+            },
+          ]}
+        />
+      </View>
+    )
+  }
 }
+
+
+const ADD_FAVORITE = gql`
+  mutation addFavorite($repo: Repository) {
+    addFavorite(repo: $repo) @client
+  }
+`;
+
+
+const GET_ALL_FAVORITES = gql`
+  query {
+    favorites @client {
+      id
+      name
+    }
+  }
+`
+
+
+export default compose(
+  graphql(ADD_FAVORITE, { name: 'addFavorite' }),
+  graphql(GET_ALL_FAVORITES, { name: 'favorites' })
+)(Details);

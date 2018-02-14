@@ -12,7 +12,7 @@ import Icon from 'react-native-vector-icons/MaterialCommunityIcons'
 
 
 import gql from 'graphql-tag';
-import { graphql } from 'react-apollo';
+import { graphql, compose } from 'react-apollo';
 
 
 import SearchRow from '../components/rowSearch'
@@ -88,7 +88,7 @@ class Search extends PureComponent {
     Keyboard.dismiss()
     if (this.state.query.trim() === '') return
     // this.props.newSearch(this.state.query)
-    this.props.data.refetch({ queryRepo: this.state.query })
+    this.props.myQuery.refetch({ queryRepo: this.state.query })
   }
 
   renderItem = ({ item: { node } }) => {
@@ -117,15 +117,27 @@ class Search extends PureComponent {
     </View>
   )
 
+  muteateCache = () => {
+    const objUser = { uid: 'aaaa', name: 'bbbb', lastName: 'ccc' }
+    this.props.myMutation({ variables: objUser })
+
+  }
+
+  muteateCache2 = () => {
+    const objUser = { uid: 'bbb', name: 'ccc', lastName: 'ddd' }
+    this.props.myMutation({ variables: objUser })
+  }
+
   render = () => {
 
+    console.log(this.props.myQuery)
 
-    console.log(this.props)
-
-
-    if (this.props.data.error || this.props.data.loading) {
+    if (this.props.myQuery.error || this.props.myQuery.loading) {
       return <View />
     }
+
+    // console.log(this.props.myQuery.favorites)
+
 
 
     return (
@@ -133,12 +145,12 @@ class Search extends PureComponent {
         {this.renderSearch()}
         <FlatList
           style={{ flex: 1 }}
-          refreshing={this.props.data.loading}
+          refreshing={this.props.myQuery.loading}
           onRefresh={this.onNewSearch}
           removeClippedSubviews
           renderItem={this.renderItem}
-          extraData={this.props.data.search.edges}
-          data={this.props.data.search.edges}
+          extraData={this.props.myQuery.search.edges}
+          data={this.props.myQuery.search.edges}
           keyExtractor={keyExtractor}
           ListEmptyComponent={<EmptySearch query={this.state.query} />}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -177,7 +189,7 @@ const fragment = `
 }`
 
 const query = gql`
-query SearchRepos($queryRepo: String!){
+query SearchRepos($queryRepo: String!) {
   search(query: $queryRepo, type: REPOSITORY, first:15){
     repositoryCount
     edges{
@@ -189,7 +201,9 @@ query SearchRepos($queryRepo: String!){
 }
 `
 
+
 export default graphql(query, {
+  name: 'myQuery',
   options: {
     variables: {
       queryRepo: 'React-native-'

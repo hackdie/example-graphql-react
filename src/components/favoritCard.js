@@ -31,13 +31,13 @@ const styles = StyleSheet.create({
   },
 })
 
-const FavoriteCard = ({ description, name, owner: { avatar_url } }) => (
+const FavoriteCard = ({ description, name, owner: { avatarUrl } }) => (
   <View style={styles.cardContainer}>
     <View style={{ height: 160 }}>
       <Image
         style={{ height: 160 }}
         source={{
-          uri: avatar_url,
+          uri: avatarUrl,
         }}
       />
       <View style={styles.imgFav}>
